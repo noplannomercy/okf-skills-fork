@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| upstream | `https://github.com/xSAVIKx/okf-skills` (remote `upstream`) |
+| upstream | `https://github.com/xSAVIKx/okf-skills` (remote `upstream`, 이력 fetch 완료 — `git diff upstream/master` 즉시 사용 가능) |
 | fork base commit | **`9740e89309b0a10b0e847ac533cc33a7b4513f5c`** (`master`, 2026-08-07, tag `okf-go/v0.9.0`) |
 | spec 정본 | `GoogleCloudPlatform/open-knowledge-format` @ `ad30107c31c06aec8a7d5636e0d1058118604e6f` — `SPEC.md` **v0.2** |
 | fork 시작일 | 2026-08-29 |
@@ -59,7 +59,7 @@ go test -run TestBoundary ./okf-go/...
 
 ## fork 정책 결정
 
-- **커밋된 connector 바이너리를 제거했다.** upstream 은 `skills/okf-{csv,lint,viz,graphql,mongodb,openapi}/` 에 ELF 리눅스 실행 파일을 커밋해 두었다. 패치된 소스와 불일치하므로 우리 fork 에서는 적극적으로 해롭다. `.gitignore` 로 재유입을 막았다. 작업 트리 182MB → 2.5MB.
+- **커밋된 connector 바이너리를 제거했다.** upstream 은 `skills/okf-{csv,lint,viz,graphql,mongodb,openapi}/` 에 ELF 리눅스 실행 파일을 커밋해 두었다. 패치된 소스와 불일치하므로 우리 fork 에서는 적극적으로 해롭다. `.gitignore` 로 재유입을 막았다. 작업 트리 182MB → **2.5MB** (저장소 전체는 upstream 이력 팩 포함 약 60MB).
 - 그 외 upstream 파일은 손대지 않았다.
 
 ## 이 fork 가 해결하지 **않는** 것
