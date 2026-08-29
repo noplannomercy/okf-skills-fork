@@ -1,0 +1,57 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Database Connectors",
+      "description": "Produce and ingest OKF bundles from SQL databases, warehouses, and tabular flat files.",
+      "skills": [
+        "okf-sqlite",
+        "okf-mysql",
+        "okf-postgresql",
+        "okf-bigquery",
+        "okf-csv",
+        "okf-mongodb"
+      ]
+    },
+    {
+      "title": "Filesystem & Git",
+      "description": "Produce and ingest OKF bundles from local directory trees and Git repositories.",
+      "skills": [
+        "okf-fs",
+        "okf-git"
+      ]
+    },
+    {
+      "title": "API Connectors",
+      "description": "Produce and ingest OKF bundles from API contracts such as OpenAPI/Swagger and GraphQL.",
+      "skills": [
+        "okf-openapi",
+        "okf-graphql"
+      ]
+    },
+    {
+      "title": "Agent Guidance",
+      "description": "Instructions-only skills that teach an agent to read and enrich OKF bundles, and to author the producer skills that generate them.",
+      "skills": [
+        "okf-reader",
+        "okf-enrich",
+        "okf-producer-generator"
+      ]
+    },
+    {
+      "title": "Visualization",
+      "description": "Render OKF bundles into a browsable, interactive HTML graph view.",
+      "skills": [
+        "okf-viz"
+      ]
+    },
+    {
+      "title": "Validation",
+      "description": "Validate OKF bundles for spec conformance and enrichment coverage, gating CI.",
+      "skills": [
+        "okf-lint"
+      ]
+    }
+  ]
+}
