@@ -274,6 +274,68 @@ func TestBoundaryMalformedInputFailsClosed(t *testing.T) {
 	}
 }
 
+// B14: producer-defined extension keys must be merged key by key across a
+// structural re-produce. Carrying the map wholesale only when the fresh doc has
+// none makes preservation conditional on connectors never emitting an extension
+// key of their own; the moment one does, every agent- or policy-owned key on the
+// existing concept disappears with no error and no diff.
+func TestBoundaryExtraKeyLevelMerge(t *testing.T) {
+	base := func(extra map[string]interface{}) ConceptDoc {
+		return ConceptDoc{Frontmatter: Frontmatter{
+			Type: "SQLite Table", Title: "shipments", Resource: "sqlite:///A#ship",
+			Extra: extra,
+		}, Body: boundaryBodyV1}
+	}
+	merge := func(existingExtra, freshExtra map[string]interface{}) map[string]interface{} {
+		existing := base(existingExtra)
+		existing.Frontmatter.ContentHash = ConceptStructuralHash(existing)
+		fresh := base(freshExtra)
+		fresh.Body = boundaryBodyV2 // structural change
+		m, changed := MergeConcept(&existing, fresh)
+		if !changed {
+			t.Fatal("structural change not detected; fixture is wrong")
+		}
+		return m.Frontmatter.Extra
+	}
+
+	// C5-1: an existing-only key survives even though the fresh doc carries one.
+	t.Run("existing-only key survives alongside a fresh key", func(t *testing.T) {
+		got := merge(
+			map[string]interface{}{"x_policy_status": "inferred"},
+			map[string]interface{}{"x_connector_note": "regenerated"},
+		)
+		if got["x_policy_status"] != "inferred" {
+			t.Errorf("existing-only key dropped: %+v", got)
+		}
+		if got["x_connector_note"] != "regenerated" {
+			t.Errorf("fresh key lost: %+v", got)
+		}
+	})
+
+	// C5-2: on a key collision the fresh (connector-owned) value wins.
+	t.Run("collision resolves to the fresh value", func(t *testing.T) {
+		got := merge(
+			map[string]interface{}{"x_example": "old"},
+			map[string]interface{}{"x_example": "new"},
+		)
+		if got["x_example"] != "new" {
+			t.Errorf("collision did not resolve to fresh: %+v", got)
+		}
+	})
+
+	// C5-3: the merge is generic key-level behaviour, not a special case for a
+	// policy marker.
+	t.Run("any existing-only key is carried, not just policy keys", func(t *testing.T) {
+		got := merge(
+			map[string]interface{}{"x_existing_only": "value"},
+			map[string]interface{}{"x_other": "1"},
+		)
+		if got["x_existing_only"] != "value" {
+			t.Errorf("non-policy existing-only key dropped: %+v", got)
+		}
+	})
+}
+
 // B12: a `verified` value of an unexpected shape must be surfaced, not silently
 // discarded — a silent drop destroys the verification record on the next write.
 func TestBoundaryMalformedTrustSurfaced(t *testing.T) {

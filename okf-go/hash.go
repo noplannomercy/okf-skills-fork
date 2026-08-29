@@ -99,8 +99,20 @@ func MergeConcept(existing *ConceptDoc, fresh ConceptDoc) (ConceptDoc, bool) {
 	if merged.Frontmatter.StaleAfter == "" {
 		merged.Frontmatter.StaleAfter = existing.Frontmatter.StaleAfter
 	}
-	if len(merged.Frontmatter.Extra) == 0 {
-		merged.Frontmatter.Extra = existing.Frontmatter.Extra
+	// Extension keys merge key by key — the fresh (connector-owned) value wins a
+	// collision, and a key only the existing doc carries is preserved. Replacing
+	// the map wholesale would drop every agent- or policy-owned key the moment a
+	// connector emits an extension key of its own. A fresh map is allocated so
+	// neither input's map is aliased or mutated.
+	if len(existing.Frontmatter.Extra) > 0 || len(merged.Frontmatter.Extra) > 0 {
+		combined := make(map[string]interface{}, len(existing.Frontmatter.Extra)+len(merged.Frontmatter.Extra))
+		for k, v := range existing.Frontmatter.Extra {
+			combined[k] = v
+		}
+		for k, v := range merged.Frontmatter.Extra {
+			combined[k] = v
+		}
+		merged.Frontmatter.Extra = combined
 	}
 	merged.Body = preserveExtraSections(fresh.Body, existing.Body)
 	return merged, true
