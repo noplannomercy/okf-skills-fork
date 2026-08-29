@@ -24,7 +24,7 @@
 | **P1** | `okf.go` `IsStale` | RFC3339 instant 수용. 파싱 실패 시 **fail-closed(stale)** | 정본 SPEC §5.5 는 `stale_after` 를 **절대 시각**으로 규정. upstream 은 `YYYY-MM-DD` 만 파싱하고 실패를 `false`(신선)로 흡수 |
 | **P2** | `okf.go` `VerifiedList.UnmarshalYAML` | 예상 밖 노드 종류에 **error 반환** | 이형 `verified`(스칼라/숫자/불린)가 무오류로 사라진 뒤 다음 쓰기에서 검증 기록이 영구 삭제되는 것을 차단 |
 | **P3** | `okf.go` `Frontmatter.Extra` | `yaml:",inline"` catch-all 추가 | SPEC §4.1 *"consumers SHOULD preserve unknown keys when round-tripping"* |
-| **P4** | `hash.go` `MergeConcept` | fresh 가 비어 있을 때 `Verified`/`Sources`/`UsageWindow`/`Status`/`StaleAfter` 이월 | 구조 변경 재생성 시 사람 검증·provenance·lifecycle 이 전멸하던 것을 차단. SPEC §5.2 *"content can change without re-confirmation"* |
+| **P4** | `hash.go` `MergeConcept` | fresh 가 비어 있을 때 `Verified`/`Sources`/`UsageWindow`/`Status`/`StaleAfter` 이월. **주의: fresh 가 `Verified` 또는 `Sources` 를 하나라도 방출하면 기존 컬렉션 전체가 대체된다 — 이 이월은 조건부이며 미해결 boundary candidate 다** (부록 H 추기 2) | 구조 변경 재생성 시 사람 검증·provenance·lifecycle 이 전멸하던 것을 차단. SPEC §5.2 *"content can change without re-confirmation"* |
 | **P5** | `hash.go` `ConceptStructuralHash` | `type`/`title`/`resource` 를 해시 입력에 포함 | body 가 동일한 채 자산 **신원**만 바뀌면 해시가 같아 `changed==false` → 쓰기 생략 → 문서가 옛 자산을 계속 가리키고 log·diff 에 흔적이 남지 않던 무성 훼손을 차단 |
 
 | **P4b** | `hash.go` `MergeConcept` | 확장 키를 **키 단위 병합**(existing + fresh, 충돌 시 fresh 우선). P4 의 맵 전체 조건부 이월은 connector 가 확장 키를 하나라도 방출하면 기존 키 전부를 무성 소실시켰다 (부록 H / C5) |
