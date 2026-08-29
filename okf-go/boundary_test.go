@@ -274,6 +274,95 @@ func TestBoundaryMalformedInputFailsClosed(t *testing.T) {
 	}
 }
 
+// B15: verification history must merge across a structural re-produce, not be
+// replaced. B6 covers only the direction where the connector supplies no
+// `verified`; if a producer emits one, replacing the list wholesale destroys an
+// existing human sign-off and silently downgrades the trust tier.
+//
+// SPEC §5.2: "Multiple entries capture independent checks". Event identity here
+// is the exact pair (by, at) — the only fields a VerifiedEntry has. Order is
+// existing entries first, then fresh entries not already present, so the result
+// is deterministic without inventing a sort over an optional timestamp.
+func TestBoundaryVerifiedHistoryMerge(t *testing.T) {
+	const human = "human:vavagirls"
+	const proc = "process:okf-sqlite"
+	t0, t1 := "2026-08-02T11:00:00Z", "2026-08-29T13:00:00Z"
+
+	merge := func(existingV, freshV VerifiedList) VerifiedList {
+		existing := ConceptDoc{Frontmatter: Frontmatter{
+			Type: "SQLite Table", Title: "orders", Resource: "sqlite:///A#orders",
+			Verified: existingV,
+		}, Body: boundaryBodyV1}
+		existing.Frontmatter.ContentHash = ConceptStructuralHash(existing)
+		fresh := ConceptDoc{Frontmatter: Frontmatter{
+			Type: "SQLite Table", Title: "orders", Resource: "sqlite:///A#orders",
+			Verified: freshV,
+		}, Body: boundaryBodyV2}
+		m, changed := MergeConcept(&existing, fresh)
+		if !changed {
+			t.Fatal("structural change not detected; fixture is wrong")
+		}
+		return m.Frontmatter.Verified
+	}
+	actors := func(v VerifiedList) []string {
+		out := []string{}
+		for _, e := range v {
+			out = append(out, e.By+"@"+e.At)
+		}
+		return out
+	}
+
+	t.Run("existing human sign-off survives a fresh machine entry", func(t *testing.T) {
+		got := merge(
+			VerifiedList{{By: human, At: t0}},
+			VerifiedList{{By: proc, At: t1}},
+		)
+		if len(got) != 2 {
+			t.Fatalf("verification history not merged: %v", actors(got))
+		}
+		if got[0].By != human || got[1].By != proc {
+			t.Errorf("order is not existing-then-fresh: %v", actors(got))
+		}
+		if tier := (Frontmatter{Verified: got}).GetTrustTier(); tier != TrustTierHumanReviewed {
+			t.Errorf("trust tier silently downgraded to %q", tier)
+		}
+	})
+
+	t.Run("an identical (by, at) event is not duplicated", func(t *testing.T) {
+		got := merge(
+			VerifiedList{{By: proc, At: t1}},
+			VerifiedList{{By: proc, At: t1}},
+		)
+		if len(got) != 1 {
+			t.Errorf("duplicate verification event kept: %v", actors(got))
+		}
+	})
+
+	t.Run("the same actor at a different time is a distinct event", func(t *testing.T) {
+		got := merge(
+			VerifiedList{{By: proc, At: t0}},
+			VerifiedList{{By: proc, At: t1}},
+		)
+		if len(got) != 2 {
+			t.Errorf("re-verification collapsed into one event: %v", actors(got))
+		}
+	})
+
+	t.Run("merging is deterministic across repeated calls", func(t *testing.T) {
+		e := VerifiedList{{By: human, At: t0}, {By: proc, At: t0}}
+		f := VerifiedList{{By: proc, At: t1}, {By: human, At: t0}}
+		a, b := actors(merge(e, f)), actors(merge(e, f))
+		if len(a) != 3 {
+			t.Fatalf("expected 3 distinct events, got %v", a)
+		}
+		for i := range a {
+			if a[i] != b[i] {
+				t.Fatalf("merge is not deterministic: %v vs %v", a, b)
+			}
+		}
+	})
+}
+
 // B14: producer-defined extension keys must be merged key by key across a
 // structural re-produce. Carrying the map wholesale only when the fresh doc has
 // none makes preservation conditional on connectors never emitting an extension

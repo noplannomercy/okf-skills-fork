@@ -84,9 +84,7 @@ func MergeConcept(existing *ConceptDoc, fresh ConceptDoc) (ConceptDoc, bool) {
 	merged.Frontmatter.Tags = unionTags(fresh.Frontmatter.Tags, existing.Frontmatter.Tags)
 	// Carry agent/human-owned trust, provenance and lifecycle state that a
 	// connector re-run does not regenerate. Fresh values win when present.
-	if len(merged.Frontmatter.Verified) == 0 {
-		merged.Frontmatter.Verified = existing.Frontmatter.Verified
-	}
+	merged.Frontmatter.Verified = mergeVerified(existing.Frontmatter.Verified, merged.Frontmatter.Verified)
 	if len(merged.Frontmatter.Sources) == 0 {
 		merged.Frontmatter.Sources = existing.Frontmatter.Sources
 	}
@@ -116,6 +114,39 @@ func MergeConcept(existing *ConceptDoc, fresh ConceptDoc) (ConceptDoc, bool) {
 	}
 	merged.Body = preserveExtraSections(fresh.Body, existing.Body)
 	return merged, true
+}
+
+// mergeVerified concatenates two verification histories — existing entries first,
+// then fresh entries not already present — and drops any entry whose (by, at)
+// pair has already been seen.
+//
+// SPEC §5.2 treats multiple entries as independent checks, and (by, at) is the
+// whole of a VerifiedEntry, so an exact pair match is the only event identity the
+// format offers today. Replacing the list wholesale destroys an existing human
+// sign-off the moment a producer emits a verification of its own, silently
+// downgrading the derived trust tier. Order is stable concatenation rather than a
+// sort, since `at` is optional and sorting an absent timestamp would be arbitrary.
+func mergeVerified(existing, fresh VerifiedList) VerifiedList {
+	if len(existing) == 0 && len(fresh) == 0 {
+		return nil
+	}
+	type event struct{ by, at string }
+	seen := make(map[event]bool, len(existing)+len(fresh))
+	out := make(VerifiedList, 0, len(existing)+len(fresh))
+	for _, list := range []VerifiedList{existing, fresh} {
+		for _, e := range list {
+			k := event{e.By, e.At}
+			if seen[k] {
+				continue
+			}
+			seen[k] = true
+			out = append(out, e)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // unionTags returns the sorted, de-duplicated union of two tag slices, or nil if
