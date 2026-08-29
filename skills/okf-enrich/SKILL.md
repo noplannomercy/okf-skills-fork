@@ -111,7 +111,7 @@ Layer classification tags onto the connector's existing `tags` (e.g. `[sqlite, t
   tags. Re-running yields the same set.
 
 #### 4c. Record verification & trust tier (OKF v0.2)
-- **Machine enrichment sign-off**: When performing automated machine enrichment, set frontmatter `verified: { by: "process:<agent-name>", at: "<ISO8601>" }` (or append to the list if `verified` is already present). This transitions the concept's derived trust tier from `unverified` to `machine-confirmed`.
+- **Machine enrichment provenance**: When performing automated machine enrichment, record it in `generated: { by: "process:<agent-name>", at: "<ISO8601>" }` — SPEC v0.2 §5.2 makes `generated` the record of *how the current content was produced*, and `generated.by` is REQUIRED within it. **Do not add the enriching actor to `verified`.** `verified` records who *confirmed* the content against its sources or `resource`; §5.2 keeps the two distinct "because who *wrote* a concept need not be who *confirmed* it". Enriching therefore leaves the derived trust tier at `unverified` until an independent actor confirms the concept.
 - **Human sign-off**: When a human user reviews or confirms concept descriptions, set `verified: { by: "human:<username>", at: "<ISO8601>" }`, elevating the concept to `human-reviewed`.
 - **Preserve existing verifications**: Append new verification events to the `verified` array without dropping existing entries.
 
@@ -123,7 +123,7 @@ Layer classification tags onto the connector's existing `tags` (e.g. `[sqlite, t
   4. Replace inline formulas in narrative docs with standard markdown links to the new `Attested Computation` concept (e.g. `[revenue computation](../computations/revenue.md)`).
 
 ### 5. Write back surgically
-- Set the frontmatter `description` field and append `verified: { by: "process:<agent>", at: "<timestamp>" }`. Preserve `type`, `title`, `resource`, `timestamp`, and (apart from the additions in §4a/§4b/§4c/§4d) the markdown body — including the Columns, Data Profile, and Sample sections — unchanged.
+- Set the frontmatter `description` field and set `generated: { by: "process:<agent>", at: "<timestamp>" }` (§4c) — do not write a `verified` entry for your own enrichment. Preserve `type`, `title`, `resource`, `timestamp`, and (apart from the additions in §4a/§4b/§4c/§4d) the markdown body — including the Columns, Data Profile, and Sample sections — unchanged.
 - **Relationship prose (§4a)**: write glosses *into the existing `# Relationships` section* alongside the connector's links; never touch the link list itself, and never create the section when the connector did not.
 - **Tags (§4b)**: edit only the frontmatter `tags` field as a sorted, deduplicated union; never reorder or drop existing tags.
 - Where the source carries per-column comments (see the **Source variations** table below), fill only the **empty** cells in that column; leave populated cells and every other cell untouched.
