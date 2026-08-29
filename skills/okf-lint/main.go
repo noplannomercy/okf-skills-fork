@@ -96,6 +96,8 @@ func runLint(args []string) {
 	requireTypes := fs.Bool("require-types", true, "Fail if any concept is missing a non-empty type")
 	strict := fs.Bool("strict", false, "Also fail when there are orphan (cross-link-less) concepts")
 	asJSON := fs.Bool("json", false, "Emit the report as JSON instead of text")
+	noSelfSign := fs.Bool("policy-no-self-sign", false,
+		"Trust policy (not spec conformance): fail when a concept is verified by the same actor named in generated.by")
 	_ = fs.Parse(args)
 
 	if *bundle == "" {
@@ -120,6 +122,21 @@ func runLint(args []string) {
 	fails := gateFailures(rep, gateOpts{
 		minPct: *minPct, maxBroken: *maxBroken, requireTypes: *requireTypes, strict: *strict,
 	})
+
+	// Trust policy gate. Opt-in, reported on stderr, and kept out of the
+	// conformance report entirely so stdout stays byte-identical to a run
+	// without the flag. See policy.go for why this is not a spec rule.
+	if *noSelfSign {
+		pf, perr := ScanPolicy(*bundle)
+		if perr != nil {
+			log.Fatalf("Failed to scan bundle for trust policy: %v", perr)
+		}
+		fmt.Fprint(os.Stderr, policyReport(pf))
+		if len(pf) > 0 {
+			fails = append(fails, fmt.Sprintf("%d trust-policy violation(s): self-signed verification", len(pf)))
+		}
+	}
+
 	if len(fails) > 0 {
 		fmt.Fprintln(os.Stderr, "lint failed:")
 		for _, f := range fails {

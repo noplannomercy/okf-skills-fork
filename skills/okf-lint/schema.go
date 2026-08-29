@@ -18,6 +18,7 @@ func buildSchema() okf.SkillSchema {
 					{Name: "require-types", Type: "bool", Description: "Fail if any concept is missing a non-empty type.", Default: "true"},
 					{Name: "strict", Type: "bool", Description: "Also fail when there are orphan (cross-link-less) concepts.", Default: "false"},
 					{Name: "json", Type: "bool", Description: "Emit the report as JSON instead of text.", Default: "false"},
+					{Name: "policy-no-self-sign", Type: "bool", Description: "Trust policy, not spec conformance: fail when a concept is verified by the same actor named in generated.by.", Default: "false"},
 				},
 			},
 			{
